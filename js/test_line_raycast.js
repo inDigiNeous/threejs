@@ -12,6 +12,8 @@ var effectCopy;
 var effectFXAA;
 var effectBloom;
 
+//var controls;
+
 var camera;
 var zoom_mult = 0;
 var line_width = 3;
@@ -72,6 +74,9 @@ function init() {
 	composer.addPass( effectFXAA );
 	composer.addPass( effectBloom );
 	composer.addPass( effectCopy );
+
+	// Controls
+	//controls = new THREE.OrbitControls( camera, renderer.domElement );
 
 	// The ray we are casting
 	var material = new THREE.LineBasicMaterial({
@@ -204,6 +209,8 @@ function doLogic() {
 
 	camera.lookAt( scene.position );
 	camera.updateMatrixWorld();
+
+	//controls.update();
 
 	// find intersections
 	raycaster.setFromCamera( mouse, camera );
