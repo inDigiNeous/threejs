@@ -22012,7 +22012,6 @@ THREE.Line.prototype.raycast = ( function () {
 	var sphere = new THREE.Sphere();
 
 	return function raycast( raycaster, intersects ) {
-
 		var precision = raycaster.linePrecision;
 		var precisionSq = precision * precision;
 
