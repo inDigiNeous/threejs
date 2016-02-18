@@ -59,7 +59,7 @@ function init() {
 	raycaster.linePrecision = 0.005;
 
 	renderModel = new THREE.RenderPass( scene, camera );
-	effectBloom = new THREE.BloomPass( 1.6 );
+	effectBloom = new THREE.BloomPass( 1.3 );
 
 	effectFXAA = new THREE.ShaderPass( THREE.FXAAShader );
 	var width = window.innerWidth || 2;
