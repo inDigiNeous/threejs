@@ -12,11 +12,12 @@ var effectCopy;
 var effectFXAA;
 var effectBloom;
 
-//var controls;
+var controls_enabled = false;
+var controls;
 
 var camera;
 var zoom_mult = 0;
-var line_width = 10;
+var zoom_camera = false;
 
 var raycaster;
 var mouse;
@@ -25,8 +26,11 @@ var resolution;
 
 var ray;
 
-var objects = [];
+var meshlines = [];
+var materials = [];
 var linecolors = [];
+var normal_linewidth = 10;
+var highlight_linewidth = 30;
 
 var currentIntersected;
 
@@ -72,11 +76,13 @@ function init() {
 	composer = new THREE.EffectComposer( renderer );
 	composer.addPass( renderModel );
 	composer.addPass( effectFXAA );
-	composer.addPass( effectBloom );
+	//composer.addPass( effectBloom );
 	composer.addPass( effectCopy );
 
 	// Controls
-	//controls = new THREE.OrbitControls( camera, renderer.domElement );
+	if (controls_enabled === true) {
+		controls = new THREE.OrbitControls( camera, renderer.domElement );
+	}
 
 	// The ray is just a line
 	// We rotate and scale this line to match the ray we are shooting
@@ -105,11 +111,6 @@ function init() {
 };
 
 function createMeshLineMesh(geometry, material) {
-	var meshLine = new THREE.MeshLine();
-	meshLine.setGeometry(geometry);
-	var mesh = new THREE.Mesh(meshLine.geometry, material);
-
-	return mesh;
 }
 
 function createLines(numLines) {
@@ -149,7 +150,7 @@ function createLines(numLines) {
 			opacity: 1.0,
 			resolution: resolution,
 			sizeAttenuation: false,
-			lineWidth: line_width,
+			lineWidth: normal_linewidth,
 			near: camera.near,
 			far: camera.far,
 			depthTest: true,
@@ -159,12 +160,20 @@ function createLines(numLines) {
 			wireframe: WIREFRAME
 		});
 
-		line = createMeshLineMesh(geometry, material);
-		linecolors.push(color);
+		materials.push(material);
 
-		objects.push(line);
+		// We first create a mesh line
+		var meshLine = new THREE.MeshLine();
+		meshLine.setGeometry(geometry);
+		meshlines.push(meshLine);
 
-		scene.add(line);
+		// Then the actual rendered mesh from that
+		var mesh = new THREE.Mesh(meshLine.geometry, material);
+
+		meshLine.setMatrixWorld(mesh.matrixWorld);
+		meshLine.setMaterial(material);
+
+		scene.add(mesh);
 	}
 }
 
@@ -214,32 +223,42 @@ function onMouseMove(evt) {
 	mouse.y = - ( evt.clientY / window.innerHeight ) * 2 + 1;
 }
 
+var currentIntersectedIndex = 0;
+
 function doLogic() {
 	var delta = clock.getDelta();
 	var t = clock.getElapsedTime();
 
-	camera.position.z = 1.0 - Math.cos(t / 4.0);
+	if (zoom_camera === true) {
+		camera.position.z = 1.0 - Math.cos(t / 8.0);
+		camera.lookAt( scene.position );
+		camera.updateMatrixWorld();
+	}
 
-	camera.lookAt( scene.position );
-	camera.updateMatrixWorld();
-
-	//controls.update();
+	if (controls_enabled === true) {
+		controls.update();
+	}
 
 	// find intersections
 	raycaster.setFromCamera( mouse, camera );
-	var intersects = raycaster.intersectObjects(objects, true);
 
+	var intersects = raycaster.intersectObjects(meshlines, false);
+
+	// How do we find the correct material here ?
+	//
+	//
 	if (intersects.length > 0) {
 		if ( currentIntersected !== undefined ) {
-			currentIntersected.material.linewidth = line_width;
+			// Set the meshline lineWidth here
+			currentIntersected.material.uniforms.lineWidth.value = normal_linewidth;
 		}
 
-		currentIntersected = intersects[ 0 ].object;
-		currentIntersected.material.linewidth *= 4;
+		currentIntersected = intersects[0].object;
+		currentIntersected.material.uniforms.lineWidth.value = highlight_linewidth;
 
 	} else {
 		if ( currentIntersected !== undefined ) {
-			currentIntersected.material.linewidth = line_width;
+			currentIntersected.material.uniforms.lineWidth.value = normal_linewidth;
 		}
 		currentIntersected = undefined;
 	}

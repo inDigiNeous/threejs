@@ -217,6 +217,8 @@ function doLogic() {
 	var intersects = raycaster.intersectObjects(objects, true);
 
 	if (intersects.length > 0) {
+		console.log("intersects.length = ")
+		console.log(intersects)
 		if ( currentIntersected !== undefined ) {
 			currentIntersected.material.linewidth = line_width;
 		}
@@ -225,6 +227,7 @@ function doLogic() {
 		currentIntersected.material.linewidth *= 4;
 
 	} else {
+		console.log("no intersects found");
 		if ( currentIntersected !== undefined ) {
 			currentIntersected.material.linewidth = line_width;
 		}

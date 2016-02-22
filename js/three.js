@@ -8158,7 +8158,6 @@ THREE.Layers.prototype = {
 	}
 
 	function intersectObject( object, raycaster, intersects, recursive ) {
-
 		if ( object.visible === false ) return;
 
 		object.raycast( raycaster, intersects );
@@ -22012,6 +22011,7 @@ THREE.Line.prototype.raycast = ( function () {
 	var sphere = new THREE.Sphere();
 
 	return function raycast( raycaster, intersects ) {
+		console.log("raycasting line");
 		var precision = raycaster.linePrecision;
 		var precisionSq = precision * precision;
 
