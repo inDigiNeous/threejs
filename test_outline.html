@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transiti+onal//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+<title>Outline test</title>
+
+<meta name="title" content="Outline test" />
+
+<style type="text/css">
+body { 
+	overflow: hidden; 
+	font-family: Lato, sans-serif; 
+	width: 100%; 
+	height: 100%; 
+	background-color: #dedede; 
+	color: white;
+	padding: 20px; 
+	text-shadow: 0 1px 0 rgba(255,255,255,.5);
+}
+
+#container { 
+	position: absolute; 
+	left: 0; 
+	top: 0; 
+	right: 0; 
+	bottom: 0; 
+	width: 100%;
+	height: 100%;
+	border: 1px solid gray;
+	z-index: 10;
+}
+
+</style>
+<script type="text/javascript" src="js/three.min.js"></script>
+<script type="text/javascript" src="js/Maf.js"></script>
+<script type="text/javascript" src="js/OrbitControls.js"></script>
+<script type="text/javascript" src="js/test_outline.js"></script>
+
+<script src="js/shaders/CopyShader.js"></script>
+
+<script src="js/postprocessing/EffectComposer.js"></script>
+<script src="js/postprocessing/MaskPass.js"></script>
+<script src="js/postprocessing/RenderPass.js"></script>
+<script src="js/postprocessing/ShaderPass.js"></script>
+</head>
+
+<body>
+    <div id="container"></div>
+</body>
+
+</html>
