@@ -11,6 +11,8 @@ var maskScene;
 var outlineScene;
 
 var camera;
+var raycaster;
+var mouse;
 
 var normalPass;
 var maskPass;
@@ -18,13 +20,22 @@ var outlinePass;
 var clearMaskPass;
 var copyPass;
 
-var outlineShaderMat;
+var outlineMaterial;
+var maskMaterial;
 
 var controls;
 var clock;
 
+// Normal rendered objects
 var objects = [];
-var outlinedObjects = [];
+
+// Outlined objects
+var outlineObjs = [];
+
+// The mask objects for outlined
+var maskObjs = [];
+
+var currentIntersected;
 
 var TWO_PI = Math.PI * 2;
 var WIREFRAME = true;
@@ -63,6 +74,10 @@ function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.autoClear = false;
 
+	// Raycaster
+	raycaster = new THREE.Raycaster();
+	raycaster.linePrecision = 0.005;
+
 	// Scenes
 	scene = new THREE.Scene();
 	maskScene = new THREE.Scene();
@@ -71,7 +86,7 @@ function init() {
 	// Cameras
 	var aspectRatio = window.innerWidth / window.innerHeight;
 	var fov = 60;
-	var camera_z = 400;
+	var camera_z = 480;
 
 	camera = new THREE.PerspectiveCamera(fov, aspectRatio, 0.1, 1000);
 	camera.position.set(0, 0, camera_z);
@@ -109,8 +124,9 @@ function init() {
 	composer.addPass(clearMaskPass);
 	composer.addPass(copyPass);
 
-	// Outline material
-	outlineShaderMat = createOutlineShaderMat();
+	// Outline & mask materials
+	outlineMaterial = createOutlineShaderMat();
+	maskMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
 	// Our scene container
 	container = document.getElementById( 'container' );
@@ -121,8 +137,11 @@ function init() {
 	// Append to our container
 	container.appendChild(renderer.domElement);
 
+	mouse = new THREE.Vector2();
+
 	// Event handlers
 	window.addEventListener( 'resize', onWindowResize );
+	document.addEventListener( 'mousemove', onMouseMove, false );
 
 	// Create something and get it running
 	createSceneObjects();
@@ -131,31 +150,6 @@ function init() {
 
 	console.log("... DONE!");
 };
-
-function createSphere(radius, widthSegments, heightSegments, color) {
-	var geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
-	var material = new THREE.MeshBasicMaterial( { color: color, wireframe: WIREFRAME });
-	var mesh = new THREE.Mesh( geometry, material );
-
-	return mesh;
-}
-
-function createTorus(radius, tube, radialSegments, tubularSegments, arc, color) {
-	//var geometry = new THREE.TorusGeometry(radius, tube, radialSegments, tubularSegments, arc);
-	var geometry = new THREE.TorusGeometry(1.0, 0.15, 8, 3);
-	var material = new THREE.MeshBasicMaterial( { color: color, wireframe: WIREFRAME });
-	var mesh = new THREE.Mesh( geometry, material );
-
-	return mesh;
-}
-
-function createCube(size, color) {
-	var geometry = new THREE.BoxGeometry( size, size, size);
-	var material = new THREE.MeshBasicMaterial( { color: color, wireframe: WIREFRAME });
-	var mesh = new THREE.Mesh( geometry, material );
-
-	return mesh;
-}
 
 // How do we do this for multiple objects now ?
 // We need to add every selected object to our
@@ -169,59 +163,83 @@ function createCube(size, color) {
 // We only add the selected one to our maskScene and outlineScene
 //
 // So maybe 
+//
+// Let's get the selection working out now.
+// In order for us to select objects, we have to 
+//
+// First raycast them
+// Then add to the selected objects
+//
+//
 function createOutlineShaderMat() {
 	var uniforms = { 
-		offset: { type: "f", value: 1.618},
-		outlineColor: { type: "v3", value: new THREE.Vector3(1.0, 1.0, 1.0) },
+		offset: { type: "f", value: 2.000},
+		outlineColor: { type: "v3", value: new THREE.Vector3(0.0, 1.0, 1.0) },
 	};
 
 	var shader = shaders['outline'];
-	var outlineShaderMat = new THREE.ShaderMaterial({
+	var outlineMaterial = new THREE.ShaderMaterial({
 		uniforms: uniforms, 
 		vertexShader: shader.vertex_shader,
 		fragmentShader: shader.fragment_shader
 	});
 
-	return outlineShaderMat;
+	return outlineMaterial;
 }
 
-// Add a mesh created to our outlined objects
-function addOutlineMesh(mesh) {
-	// flat mask
-	var flatMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-	var flatMesh = new THREE.Mesh(mesh.geometry, flatMat);
-	outlinedObjects.push(flatMesh);
-	maskScene.add(flatMesh);
+function addMeshMask(mesh) {
+	var flatMesh = mesh.clone();
+	flatMesh.material = maskMaterial;
 
-	var outlineMesh = new THREE.Mesh(mesh.geometry, outlineShaderMat);
-	outlinedObjects.push(outlineMesh);
+	maskObjs.push(flatMesh);
+	maskScene.add(flatMesh);
+}
+
+function addMeshOutline(mesh) {
+	var outlineMesh = mesh.clone();
+	outlineMesh.material = outlineMaterial;
+
+	outlineObjs.push(outlineMesh);
 	outlineScene.add(outlineMesh);
+}
+
+function removeMeshMask(mesh) {
+	maskScene.remove(mesh);
+}
+
+function removeMeshOutline(mesh) {
+	outlineScene.remove(mesh);
 }
 
 function createSceneObjects() {
 	var torusKnotGeometry = new THREE.TorusKnotGeometry(60, 12, 96, 12);
-	var phongMat = new THREE.MeshPhongMaterial({ color: 0x4080ff });
-	var torusKnotMesh = new THREE.Mesh(torusKnotGeometry, phongMat);
+	var torusMat = new THREE.MeshPhongMaterial({ color: 0x2274A5 });
+	var torusKnotMesh = new THREE.Mesh(torusKnotGeometry, torusMat);
 
 	objects.push(torusKnotMesh);
 	scene.add(torusKnotMesh);
 
-	// Add to outlined objects
-	addOutlineMesh(torusKnotMesh);
-
+	var sphereMat = new THREE.MeshPhongMaterial({ color: 0xE83F6F });
 	var sphereGeometry = new THREE.SphereGeometry(60, 16, 16);
-	var sphereMesh = new THREE.Mesh(sphereGeometry, phongMat);
+	var sphereMesh = new THREE.Mesh(sphereGeometry, sphereMat);
 	sphereMesh.position.set(-200, 0, 0);
 
 	objects.push(sphereMesh);
 	scene.add(sphereMesh);
 
 	var boxGeometry = new THREE.BoxGeometry(80, 80, 80);
-	var boxMesh = new THREE.Mesh(boxGeometry, phongMat);
+	var boxMat = new THREE.MeshPhongMaterial({ color: 0xFFBF00 });
+	var boxMesh = new THREE.Mesh(boxGeometry, boxMat);
 	boxMesh.position.set(200, 0, 0);
 
 	objects.push(boxMesh);
 	scene.add(boxMesh);
+}
+
+function onMouseMove(evt) {
+	evt.preventDefault();
+	mouse.x = ( evt.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( evt.clientY / window.innerHeight ) * 2 + 1;
 }
 
 function onWindowResize() {
@@ -235,17 +253,43 @@ function onWindowResize() {
 	composer.reset();
 }
 
+function clearOutlineScenes() {
+	var len = maskScene.children.length - 1;
+	var obj;
+
+	if (len < 0) return;
+
+	for (var i=len; i>= 0; i--) {
+		obj = maskScene.children[i];
+		maskScene.remove(obj);
+
+		obj = outlineScene.children[i];
+		outlineScene.remove(obj);
+	}
+}
+
 function doLogic() {
 	controls.update();
 
 	var delta = clock.getDelta();
 	var t = clock.getElapsedTime();
 
-	if(objects[0]) {
-		objects[0].rotation.y += 0.01;
-		outlinedObjects[0].rotation.y = objects[0].rotation.y;
-		outlinedObjects[1].rotation.y = objects[0].rotation.y;
-	}
+	// find intersections
+	raycaster.setFromCamera( mouse, camera );
+	var intersects = raycaster.intersectObjects(objects, true);
+
+	// Clear the currently outlined objects
+	outlineObjs = [];
+	maskObjs = [];
+
+	// Would have to clear the scenes too ..
+	clearOutlineScenes();
+
+	if (intersects.length > 0) {
+		var selectedObj = intersects[0].object;
+		addMeshMask(selectedObj);
+		addMeshOutline(selectedObj);
+	} 
 }
 
 function run() {
